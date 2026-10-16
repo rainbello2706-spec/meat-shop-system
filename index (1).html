@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Villanueva Meat Shop – Shop System</title>
+<style>
+/* ========== 1. THEME TOKENS ========== */
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f9c9d6;--panel:#fff4f7;--ink:#3a1220;--muted:#8a5568;--line:#eab0c1;
+  --accent:#a3122f;--accent-ink:#fff;--ok:#2f7a4d;--warn:#b86a00;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#d98aa3;--panel:#f6dbe4;--ink:#2e0d19}}
+:root[data-theme="dark"]{--bg:#d98aa3;--panel:#f6dbe4;--ink:#2e0d19}
+
+/* ========== 2. BASE ========== */
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Fraunces",Georgia,serif;line-height:1.4}
+[hidden]{display:none!important}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* ========== 3. LAYOUT (header, nav, main) ========== */
+header{padding:16px 16px 8px}
+h1{margin:0;font-size:1.5rem;letter-spacing:-.01em}
+.sub{font-size:.8rem;color:var(--muted)}
+nav{display:flex;gap:6px;padding:0 16px 10px;overflow-x:auto}
+nav button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 14px;border-radius:999px;font:600 .85rem system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+main{padding:0 16px 24px;max-width:960px;margin:0 auto;position:relative;z-index:1}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.panel h2{margin:0 0 8px;font-size:1.05rem}
+.scroll{overflow-x:auto}
+
+/* ========== 4. SELL TAB ========== */
+.pos{display:grid;gap:12px}
+@media(min-width:760px){.pos{grid-template-columns:1.6fr 1fr}}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;text-align:left;cursor:pointer;color:var(--ink);font:inherit}
+.item:disabled{opacity:.45;cursor:not-allowed}
+.item b{display:block;font-size:1rem}
+.item span{font:.78rem system-ui,sans-serif;color:var(--muted);display:block}
+.price{font:700 .95rem system-ui,sans-serif;color:var(--accent);margin-top:6px;display:block;font-style:normal}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line);font:.9rem system-ui,sans-serif}
+.row:last-child{border:0}
+.qty{display:flex;align-items:center;gap:6px}
+.qty button{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;font-weight:700}
+.total{display:flex;justify-content:space-between;font:700 1.15rem system-ui,sans-serif;padding-top:10px}
+.cta{width:100%;margin-top:10px;padding:12px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font:700 1rem system-ui,sans-serif;cursor:pointer}
+.cta:disabled{opacity:.5;cursor:not-allowed}
+
+/* ========== 5. INVENTORY / REPORTS / LOG ========== */
+.sm{padding:8px 12px;border:0;border-radius:8px;background:var(--accent);color:#fff;font:600 .85rem system-ui,sans-serif;cursor:pointer}
+.form{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input,select{padding:8px;border-radius:8px;border:1px solid var(--line);background:#fff;font:.9rem system-ui,sans-serif;max-width:100%}
+input.n{width:84px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat b{display:block;font-size:1.4rem}
+.stat span{font:.78rem system-ui,sans-serif;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font:.88rem system-ui,sans-serif}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tag{padding:2px 8px;border-radius:999px;font-size:.75rem;font-weight:600;background:#fff;border:1px solid var(--line)}
+.low{color:var(--warn)}.ok{color:var(--ok)}
+
+/* ========== 6. DESIGN TAB ========== */
+.dg{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.dg p{margin:4px 0 0;font:.85rem system-ui,sans-serif}
+.dg h3{margin:0;font-size:.95rem;color:var(--accent)}
+
+/* ========== 7. TOAST ========== */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font:.9rem system-ui,sans-serif;opacity:0;pointer-events:none;transition:opacity .2s;z-index:10}
+.toast.show{opacity:1}
+
+/* ========== 8. DECORATIVE STICKERS (wide screens only) ========== */
+.stk{position:fixed;display:none;align-items:center;justify-content:center;width:var(--s,64px);height:var(--s,64px);font-size:calc(var(--s,64px) * .55);background:#fff;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 2px var(--line),0 6px 12px rgba(58,18,32,.18);transform:rotate(var(--r,0deg));pointer-events:none;user-select:none;z-index:0;animation:bob 4s ease-in-out infinite}
+.stk.star{border-radius:18px}
+@keyframes bob{50%{transform:rotate(var(--r,0deg)) translateY(-8px)}}
+@media(min-width:1100px){.stk{display:flex}}
+@media(prefers-reduced-motion:reduce){.stk{animation:none}}
+</style>
+</head>
+<body>
+
+<div aria-hidden="true">
+  <span class="stk" style="left:2%;top:22%;--r:-12deg;--s:76px">🥩</span>
+  <span class="stk star" style="left:6%;top:40%;--r:10deg;--s:56px">🍖</span>
+  <span class="stk" style="right:8%;top:15%;--r:12deg;--s:70px">🥓</span>
+  <span class="stk star" style="right:6%;top:45%;--r:-8deg;--s:56px">🍗</span>
+  <!-- Decorative stickers (left side, then right side) -->
+<div aria-hidden="true">
+  <span class="stk" style="left:2%;top:22%;--r:-12deg;--s:76px">🥩</span>
+  <span class="stk" style="left:2%;top:56%;--r:-8deg;--s:70px;animation-delay:-2s">🐷</span>
+  <span class="stk star" style="left:7%;top:74%;--r:14deg;--s:58px;animation-delay:-3s">🎀</span>
+
+  <span class="stk" style="right:2%;top:24%;--r:12deg;--s:72px;animation-delay:-.5s">🐮</span>
+  <span class="stk" style="right:2%;top:58%;--r:8deg;--s:74px;animation-delay:-2.5s">🐔</span>
+  <span class="stk star" style="right:7%;top:76%;--r:-14deg;--s:58px;animation-delay:-3.5s">🌸</span>
+  <span class="stk star" style="left:1%;top:86%;--r:-10deg;--s:48px;animation-delay:-2.8s">🐑</span>
+</div>
+
+<header>
+  <h1>🥩 Villanueva Meat Shop</h1>
+  <div class="sub">Shop System · effective, reliable, maintainable</div>
+</header>
+<nav role="tablist" id="nav"></nav>
+<main id="view"></main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* =====================================================
+   ARCHITECTURE: CONFIG → DATA (store) → HELPERS → STATE → UI (views) → ACTIONS → EVENTS
+   ===================================================== */
+
+/* ---------- 1. CONFIG ---------- */
+const CONFIG = {key:'meatshop.v1', lowStock:5, step:0.5, maxLog:200, payments:['Cash','GCash','Card']};
+const TABS = [['sell','Sell'],['inv','Inventory'],['rep','Reports'],['log','Audit Trail'],['design','Design']];
+const SEED = [
+  ['Pork Belly',280,20,'kg'], ['Beef Sirloin',520,10,'kg'],
+  ['Ground Beef',380,12,'kg'], ['Longganisa',60,30,'pc'], ['Bacon',45,4,'pc']
+];
+
+/* ---------- 2. DATA (products, sales, audit log) ---------- */
+let db = {products:[], sales:[], log:[], seq:1};
+
+function load(){
+  try{ const s = localStorage.getItem(CONFIG.key); if(s) db = JSON.parse(s); }catch(e){}
+  if(!db.products.length){
+    SEED.forEach(([name,price,stock,unit]) => db.products.push({id:db.seq++, name, price, stock, unit}));
+    audit('SYSTEM','Sample products loaded');
+    save();
+  }
+}
+function save(){
+  try{ localStorage.setItem(CONFIG.key, JSON.stringify(db)); }
+  catch(e){ toast('Could not save data in this browser'); }
+}
+/* Audit trail: every entry and change, auto-timestamped */
+function audit(action, detail){
+  db.log.unshift({t:Date.now(), action, detail});
+  db.log = db.log.slice(0, CONFIG.maxLog);
+}
+
+/* ---------- 3. HELPERS ---------- */
+const $    = s => document.querySelector(s);
+const esc  = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const peso = n => '₱' + Number(n).toLocaleString('en-PH',{minimumFractionDigits:2, maximumFractionDigits:2});
+const when = t => new Date(t).toLocaleString('en-PH',{dateStyle:'short', timeStyle:'short'});
+const byId = id => db.products.find(p => p.id === id);
+const r2   = n => Math.round(n * 100) / 100;
+function toast(m){
+  const t = $('#toast'); t.textContent = m; t.classList.add('show');
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ---------- 4. STATE ---------- */
+let tab = 'sell', cart = {}, disc = 0, pay = 'Cash';
+const lines = () => Object.entries(cart).map(([id,q]) => ({p:byId(+id), q})).filter(l => l.p);
+const sub   = () => lines().reduce((s,l) => s + l.p.price * l.q, 0);
+const total = () => Math.max(0, sub() * (1 - disc/100));
+
+/* ---------- 5. UI: VIEWS ---------- */
+function vSell(){
+  const L = lines();
+  const products = db.products.map(p => `
+    <button class="item" data-add="${p.id}" ${p.stock<=0?'disabled':''}>
+      <b>${esc(p.name)}</b>
+      <span class="${p.stock<=CONFIG.lowStock?'low':''}">${p.stock} ${p.unit} left</span>
+      <i class="price">${peso(p.price)}/${p.unit}</i>
+    </button>`).join('');
+  const order = L.length ? L.map(l => `
+    <div class="row">
+      <span>${esc(l.p.name)}<br><small>${peso(l.p.price)}/${l.p.unit}</small></span>
+      <span class="qty">
+        <button data-dec="${l.p.id}" aria-label="less">−</button><b>${l.q}</b><button data-inc="${l.p.id}" aria-label="more">+</button>
+      </span>
+      <b>${peso(l.p.price*l.q)}</b>
+    </div>`).join('') : '<p class="sub">Tap a product to add it.</p>';
+  return `<div class="pos">
+    <section class="panel"><h2>Products</h2><div class="grid">${products}</div></section>
+    <section class="panel"><h2>Current order</h2>${order}
+      <div class="row"><label for="disc">Discount %</label><input id="disc" class="n" type="number" min="0" max="100" step="1" value="${disc}"></div>
+      <div class="row"><label for="pay">Payment</label><select id="pay">${CONFIG.payments.map(m => `<option ${m===pay?'selected':''}>${m}</option>`).join('')}</select></div>
+      <div class="total"><span>Total</span><span>${peso(total())}</span></div>
+      <button class="cta" data-checkout ${L.length?'':'disabled'}>Checkout</button>
+    </section></div>`;
+}
+
+function vInv(){
+  const rows = db.products.map(p => {
+    const status = p.stock<=0 ? 'Out' : p.stock<=CONFIG.lowStock ? 'Low' : 'OK';
+    return `<tr>
+      <td>${esc(p.name)}</td>
+      <td><input class="n" type="number" min="0.01" step="0.01" value="${p.price}" data-price="${p.id}"></td>
+      <td>${p.stock} ${p.unit}</td>
+      <td><span class="tag ${p.stock<=CONFIG.lowStock?'low':'ok'}">${status}</span></td>
+      <td><input class="n" type="number" min="0" step="0.5" id="rs${p.id}"> <button class="sm" data-restock="${p.id}">+</button></td>
+    </tr>`;
+  }).join('');
+  return `<section class="panel"><h2>Add product</h2><div class="form">
+      <input id="np-name" placeholder="Name" maxlength="40">
+      <input id="np-price" class="n" type="number" min="0" step="0.01" placeholder="Price">
+      <input id="np-stock" class="n" type="number" min="0" step="0.5" placeholder="Stock">
+      <select id="np-unit"><option>kg</option><option>pc</option></select>
+      <button class="sm" data-addprod>Add</button></div></section>
+    <section class="panel scroll"><h2>Stock</h2>
+      <table><tr><th>Product</th><th>Price</th><th>Stock</th><th>Status</th><th>Restock</th></tr>${rows}</table></section>`;
+}
+
+function vRep(){
+  const day = new Date().toDateString();
+  const td  = db.sales.filter(s => new Date(s.t).toDateString() === day);
+  const rev = td.reduce((s,x) => s + x.total, 0);
+  const all = db.sales.reduce((s,x) => s + x.total, 0);
+  const low = db.products.filter(p => p.stock <= CONFIG.lowStock).length;
+  const rows = db.sales.slice(0,25).map(s => `<tr>
+      <td>${s.id}</td><td>${when(s.t)}</td>
+      <td>${esc(s.items.map(i => i.name+' ×'+i.q).join(', '))}</td>
+      <td>${esc(s.pay)}</td><td>${peso(s.total)}</td></tr>`).join('') || '<tr><td colspan="5">No sales yet.</td></tr>';
+  return `<div class="stats">
+      <div class="stat"><b>${peso(rev)}</b><span>Sales today</span></div>
+      <div class="stat"><b>${td.length}</b><span>Transactions today</span></div>
+      <div class="stat"><b>${peso(all)}</b><span>All-time sales</span></div>
+      <div class="stat"><b class="${low?'low':''}">${low}</b><span>Low-stock items</span></div></div>
+    <section class="panel scroll"><h2>Recent sales</h2>
+      <table><tr><th>#</th><th>Date</th><th>Items</th><th>Pay</th><th>Total</th></tr>${rows}</table></section>`;
+}
+
+function vLog(){
+  const rows = db.log.map(l => `<tr><td>${when(l.t)}</td><td><span class="tag">${esc(l.action)}</span></td><td>${esc(l.detail)}</td></tr>`).join('');
+  return `<section class="panel scroll"><h2>Audit trail</h2>
+    <table><tr><th>When</th><th>Action</th><th>Detail</th></tr>${rows}</table></section>`;
+}
+
+const DESIGN = [
+  ['Systems Design','Analyst must understand the logical design: Data Design, User Interface, Architecture, System Design Specification. Objective: effective, reliable, maintainable.'],
+  ['Effective','Meets user & business needs: selling, stock control, payments, discounts, reports.'],
+  ['Reliable','Handles errors: stock checks, input validation, try/catch around saving, clear messages.'],
+  ['Maintainable','Flexible & future-ready: CONFIG block, separate data/UI layers, editable prices, add products.'],
+  ['Data Design','Products, sales and audit-log records, stored in the browser (localStorage).'],
+  ['User Interface','Tabs, tap-to-add product cards, order panel, mobile friendly.'],
+  ['Architecture','CONFIG → DATA (load/save/audit) → UI (views + event handlers).'],
+  ['System Design Specification','This tab + the code comments document the finished system.'],
+  ['Prototyping','System prototype: a full working model. Throwaway prototype: sample products let users approve features first.'],
+  ['User considerations','Every input/output point handled; anticipates future needs (low-stock alerts, payments); flexible (editable prices, discount).'],
+  ['Data: enter where & when it occurs','Sales are recorded at checkout, at the moment they happen.'],
+  ['Data: verify on entry','Name, price, stock and discount are validated before saving.'],
+  ['Data: automated entry','Auto sale numbers, timestamps, totals and stock deduction.'],
+  ['Data: audit trail','Every sale, price change, restock and new product is logged.'],
+  ['Data: enter once','Duplicate product names are blocked; stock is never re-typed.'],
+  ['Design trade-offs','Quality vs cost: local storage is cheap and simple now; a database/server is the upgrade path for multi-user use.']
+];
+const vDesign = () => `<section class="panel"><h2>System design checklist</h2><div class="dg">${
+  DESIGN.map(([a,b]) => `<div><h3>${a}</h3><p>${b}</p></div>`).join('')}</div></section>`;
+
+function render(){
+  $('#nav').innerHTML = TABS.map(([k,n]) => `<button role="tab" data-tab="${k}" aria-selected="${k===tab}">${n}</button>`).join('');
+  $('#view').innerHTML = ({sell:vSell, inv:vInv, rep:vRep, log:vLog, design:vDesign})[tab]();
+}
+
+/* ---------- 6. ACTIONS (verification + error handling = RELIABLE) ---------- */
+function checkout(){
+  try{
+    const L = lines();
+    if(!L.length) return toast('Order is empty');
+    for(const l of L){
+      if(l.q <= 0 || l.q > l.p.stock) return toast(`Not enough ${l.p.name} in stock`);
+    }
+    const sale = {id:db.seq++, t:Date.now(), pay, disc, total:total(),
+                  items:L.map(l => ({name:l.p.name, q:l.q, price:l.p.price}))};
+    L.forEach(l => l.p.stock = r2(l.p.stock - l.q));
+    db.sales.unshift(sale);
+    audit('SALE', `#${sale.id} ${peso(sale.total)} via ${pay}`);
+    save();
+    cart = {}; disc = 0;
+    toast(`Sale #${sale.id} done: ${peso(sale.total)}`);
+    render();
+  }catch(e){ toast('Checkout failed. Nothing was saved.'); }
+}
+
+function addProduct(){
+  const name  = $('#np-name').value.trim();
+  const price = parseFloat($('#np-price').value);
+  const stock = parseFloat($('#np-stock').value);
+  const unit  = $('#np-unit').value;
+  if(!name)         return toast('Enter a product name');
+  if(!(price>0))    return toast('Price must be more than 0');
+  if(!(stock>=0))   return toast('Stock cannot be negative');
+  if(db.products.some(p => p.name.toLowerCase() === name.toLowerCase())) return toast('That product already exists');
+  db.products.push({id:db.seq++, name, price, stock, unit});
+  audit('PRODUCT', `Added ${name} at ${peso(price)}, ${stock} ${unit}`);
+  save(); toast('Product added'); render();
+}
+
+function restock(id){
+  const v = parseFloat($('#rs'+id).value), p = byId(id);
+  if(!(v>0)) return toast('Enter an amount above 0');
+  p.stock = r2(p.stock + v);
+  audit('RESTOCK', `${p.name} +${v} ${p.unit}`);
+  save(); render();
+}
+
+/* ---------- 7. EVENTS ---------- */
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  const d = b.dataset;
+  if(d.tab){ tab = d.tab; render(); }
+  else if(d.add || d.inc){
+    const id = +(d.add || d.inc), p = byId(id), q = (cart[id] || 0) + CONFIG.step;
+    if(q > p.stock) toast('No more stock'); else cart[id] = q;
+    render();
+  }
+  else if(d.dec){
+    const id = +d.dec; cart[id] = (cart[id] || 0) - CONFIG.step;
+    if(cart[id] <= 0) delete cart[id];
+    render();
+  }
+  else if('checkout' in d) checkout();
+  else if('addprod'  in d) addProduct();
+  else if(d.restock)       restock(+d.restock);
+});
+
+document.addEventListener('change', e => {
+  const t = e.target;
+  if(t.id === 'disc'){
+    const v = parseFloat(t.value);
+    if(!(v>=0 && v<=100)) toast('Discount must be 0–100'); else disc = v;
+    render();
+  }
+  else if(t.id === 'pay'){ pay = t.value; }
+  else if(t.dataset.price){
+    const p = byId(+t.dataset.price), v = parseFloat(t.value);
+    if(!(v>0)){ toast('Price must be more than 0'); return render(); }
+    audit('PRICE', `${p.name}: ${peso(p.price)} → ${peso(v)}`);
+    p.price = v; save(); toast('Price updated'); render();
+  }
+});
+
+/* ---------- 8. START ---------- */
+load();
+render();
+</script>
+</body>
+</html>
